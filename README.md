@@ -1,6 +1,8 @@
 # minio-client
 An OpenShift compatible Minio client to help Bc Gov teams migrate Minio buckets between OCP3 and OCP4 clusters.  This image can be used on the BC Gov OpenShift platform to migrate Minio data directly between different clusters.
 
+This image can also be use to migrate from Minio to other S3-compliant services such as the BCGov Object Storage service.
+
 #### Why not just use the official Minio Client image?
 The official  Minio Client images needs to create a `.mc` directory in the root directory.  This will not work when running on OpenShift because OpenShift runs containers as non-root user.
 
@@ -13,19 +15,6 @@ To run as a container in OpenShift you must have the required roles to create an
 
 The following commands use syntax for Mac/Linux shell.  Please adjust accordingly if you're on Windows.
 
-### Set environment variables
-First create the connection environment variables in the terminal.
-```
-# Do not include https:// or trailing / in the endpoint
-export SRC_MINIO_ENDPOINT=source-minio.pathfinder.gov.bc.ca
-export SRC_MINIO_ACCESS_KEY=the-source-minio-access-key
-export SRC_MINIO_SECRET_KEY=the-source-minio-secret-key
-
-# Do not include https:// or trailing / in the endpoint
-export DST_MINIO_ENDPOINT=destination-minio.apps.silver.devops.gov.bc.ca
-export DST_MINIO_ACCESS_KEY=the-destination-minio-access-key
-export DST_MINIO_SECRET_KEY=the-destination-minio-secret-key
-```
 ### Run container in OpenShift
 The following command will create a temporary pod called `minio-client` in your current logged in namespace. You will be presented with the interactive shell once the pod is up and runing.  
 
@@ -33,10 +22,7 @@ When you exit the pod by typing in `exit` the pod will be destroyed automaticall
 
 Running this image in OpenShift has the advantage of enabling cluster to cluster data transfer
 ```
-oc run -i -t minio-client --rm --restart=Never \
-  --env MC_HOST_source="https://$SRC_MINIO_ACCESS_KEY:$SRC_MINIO_SECRET_KEY@$SRC_MINIO_ENDPOINT" \
-  --env MC_HOST_destination="https://$DST_MINIO_ACCESS_KEY:$DST_MINIO_SECRET_KEY@$DST_MINIO_ENDPOINT" \
-  --image=bcgovneal/minio-client:latest -- /bin/sh
+oc run -i -t minio-client --rm --restart=Never --image=bcgovneal/minio-client:latest -- /bin/sh
 ```
 
 ### Run container in Docker locally
@@ -44,10 +30,22 @@ Running this image locally on your computer will cause all data to pass through 
 
 This should only be used for testing purposes or migrating small amount of data.
 ```
-docker run -it --rm --entrypoint=/bin/sh \
-  -e MC_HOST_source="https://$SRC_MINIO_ACCESS_KEY:$SRC_MINIO_SECRET_KEY@$SRC_MINIO_ENDPOINT" \
-  -e MC_HOST_destination="https://$DST_MINIO_ACCESS_KEY:$DST_MINIO_SECRET_KEY@$DST_MINIO_ENDPOINT" \
-  bcgovneal/minio-client:latest
+docker run -it --rm --entrypoint=/bin/sh bcgovneal/minio-client:latest
+```
+
+### Creating service endpoints
+Use the following commands to add your Minio or S3-compliant Object Storage services to the Minio client.
+
+```
+mc alias set <ALIAS> <YOUR-S3-ENDPOINT> [YOUR-ACCESS-KEY] [YOUR-SECRET-KEY] [--api API-SIGNATURE]
+```
+
+#### Example
+```
+mc alias set source https://play.mio.io Q3AM3UQ867SPQQA43P2F zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG
+```
+```
+mc alias set destination https://nrs.objectstore.gov.bc.ca Q3AM3UQ867SPQQA43P2F zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG
 ```
 
 ### Mirror a bucket
